@@ -12,6 +12,7 @@ class _ScanScreenState extends State<ScanScreen> {
   late CameraController _cameraController;
   late Future<void> _initializeControllerFuture;
   final TextRecognizer _textRecognizer = TextRecognizer();
+  bool _isDetecting = false;
 
   @override
   void initState() {
@@ -22,7 +23,7 @@ class _ScanScreenState extends State<ScanScreen> {
   Future<void> _initializeCamera() async {
     final cameras = await availableCameras();
     final camera = cameras.first;
-    _cameraController = CameraController(camera, ResolutionPreset.medium);
+    _cameraController = CameraController(camera, ResolutionPreset.high);
     _initializeControllerFuture = _cameraController.initialize();
     setState(() {});
   }
@@ -35,6 +36,11 @@ class _ScanScreenState extends State<ScanScreen> {
   }
 
   Future<void> _scanText() async {
+    if (_isDetecting) return;
+    setState(() {
+      _isDetecting = true;
+    });
+
     try {
       await _initializeControllerFuture;
       final image = await _cameraController.takePicture();
@@ -47,6 +53,9 @@ class _ScanScreenState extends State<ScanScreen> {
           final info = await DatabaseHelper().getClassroomInfo(text);
           if (info != null) {
             _showClassroomInfo(info);
+            setState(() {
+              _isDetecting = false;
+            });
             return;
           }
         }
@@ -54,6 +63,10 @@ class _ScanScreenState extends State<ScanScreen> {
     } catch (e) {
       print(e);
     }
+
+    setState(() {
+      _isDetecting = false;
+    });
   }
 
   void _showClassroomInfo(String info) {
@@ -75,22 +88,36 @@ class _ScanScreenState extends State<ScanScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Scan Classroom'),
-      ),
       body: FutureBuilder<void>(
         future: _initializeControllerFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.done) {
-            return Column(
+            return Stack(
               children: [
-                AspectRatio(
-                  aspectRatio: _cameraController.value.aspectRatio,
-                  child: CameraPreview(_cameraController),
+                CameraPreview(_cameraController),
+                Center(
+                  child: Container(
+                    width: 300,
+                    height: 300,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: Colors.red,
+                        width: 3,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 ),
-                ElevatedButton(
-                  onPressed: _scanText,
-                  child: Text('Scan'),
+                Positioned(
+                  bottom: 32,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: ElevatedButton(
+                      onPressed: _scanText,
+                      child: Text('Scan'),
+                    ),
+                  ),
                 ),
               ],
             );
