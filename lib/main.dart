@@ -9,8 +9,11 @@ void main() {
 
 void _initializeDatabase() async {
   final dbHelper = DatabaseHelper();
-  await dbHelper.insertClassroom('1', '107 аудитория, компьютерный класс, с 11:30 до 13:00 семинар у 77 группы');
-  // Добавьте больше данных по мере необходимости
+  await dbHelper.insertClassroom('1', 'Кухня');
+  await dbHelper.insertClassroom('2', 'Балкон');
+  await dbHelper.insertClassroom('3', 'Комната отдыха');
+  await dbHelper.insertClassroom('WC', 'Туалет');
+  // Здесь будут добавляться данные по университету
 }
 
 class MyApp extends StatelessWidget {

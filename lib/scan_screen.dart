@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'database_helper.dart';
 
 class ScanScreen extends StatefulWidget {
@@ -12,6 +14,7 @@ class _ScanScreenState extends State<ScanScreen> {
   late CameraController _cameraController;
   late Future<void> _initializeControllerFuture;
   final TextRecognizer _textRecognizer = TextRecognizer();
+  final FlutterTts _flutterTts = FlutterTts();
   bool _isDetecting = false;
 
   @override
@@ -37,22 +40,28 @@ class _ScanScreenState extends State<ScanScreen> {
 
   Future<void> _scanText() async {
     if (_isDetecting) return;
-    setState(() {
-      _isDetecting = true;
-    });
+    _isDetecting = true;
 
     try {
       await _initializeControllerFuture;
       final image = await _cameraController.takePicture();
       final inputImage = InputImage.fromFilePath(image.path);
-      final RecognizedText recognizedText = await _textRecognizer.processImage(inputImage);
+      final recognizedText = await _textRecognizer.processImage(inputImage);
+
+      if (recognizedText.text.isEmpty) {
+        print('No text recognized');
+      } else {
+        print('Recognized text: ${recognizedText.text}');
+      }
 
       for (TextBlock block in recognizedText.blocks) {
         for (TextLine line in block.lines) {
           final text = line.text;
+          print('Detected line: $text');
           final info = await DatabaseHelper().getClassroomInfo(text);
           if (info != null) {
             _showClassroomInfo(info);
+            await _flutterTts.speak(info);
             setState(() {
               _isDetecting = false;
             });
@@ -61,7 +70,7 @@ class _ScanScreenState extends State<ScanScreen> {
         }
       }
     } catch (e) {
-      print(e);
+      print('Error processing image: $e');
     }
 
     setState(() {
@@ -101,7 +110,7 @@ class _ScanScreenState extends State<ScanScreen> {
                     height: 300,
                     decoration: BoxDecoration(
                       border: Border.all(
-                        color: Colors.red,
+                        color: Color.fromARGB(255, 255, 255, 255),
                         width: 3,
                       ),
                       borderRadius: BorderRadius.circular(12),
